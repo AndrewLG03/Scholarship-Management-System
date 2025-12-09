@@ -1,61 +1,87 @@
-// backend/app.js - VERSIÓN CORREGIDA
+// backend/app.js - VERSIÓN FINAL PRODUCCIÓN
+require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
 const { rateLimit } = require('express-rate-limit');
-require('dotenv').config();
+const path = require('path');
 
-const routes = require('./src/routes/index.js');
+const apiRoutes = require('./src/routes/index.js');
 const errorHandler = require('./src/utils/errorHandler');
 
 const app = express();
 
 // ===============================
-// DEBUG COMPLETO - CORREGIDO
+// DEBUG GENERAL PARA /api
 // ===============================
-
-// Debug para TODAS las rutas /api
 app.use('/api', (req, res, next) => {
-  console.log('🔍 [DEBUG] Ruta recibida en /api:', req.method, req.originalUrl);
-  console.log('🔍 [DEBUG] Headers auth:', req.headers.authorization ? 'SI' : 'NO');
+  console.log('🔍 [DEBUG] Ruta recibida:', req.method, req.originalUrl);
+  console.log('🔍 [DEBUG] Auth header:', req.headers.authorization ? 'PRESENTE' : 'AUSENTE');
   next();
 });
 
+// ===============================
+// SEGURIDAD Y CONFIGURACIONES
+// ===============================
 app.use(helmet());
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+
+app.use(cors({
+  origin: "*", 
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
+app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true }));
+
 app.use(morgan('dev'));
 
+// ===============================
+// RATE LIMIT
+// ===============================
 const limiter = rateLimit({
   windowMs: 60 * 1000, // 1 minuto
   max: 200,
 });
-
-const path = require('path');
-
 app.use(limiter);
 
-// mount API routes
-app.use('/api', routes);
+// ===============================
+// RUTAS ESPECIALES 2FA (ANTES DE LAS GENERALES)
+// ===============================
+app.use('/api/2fa', require('./src/routes/2fa.routes'));
 
-// servir archivos subidos
+// ===============================
+// RUTAS PRINCIPALES /api
+// ===============================
+app.use('/api', apiRoutes);
+
+// ===============================
+// ARCHIVOS ESTÁTICOS (descarga de PDFs, imágenes, docs)
+// ===============================
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// root health
-app.get('/', (req, res) => res.json({ ok: true, message: 'API - backend (Express + MySQL)' }));
-
 // ===============================
-// DEBUG PARA RUTAS NO ENCONTRADAS - CORREGIDO
+// RUTA BASE (HEALTH CHECK)
 // ===============================
-app.use((req, res, next) => {
-  console.log(' [DEBUG 404] Ruta NO encontrada:', req.method, req.originalUrl);
-  console.log(' [DEBUG 404] Esta ruta no coincide con ningún patrón definido');
-  next(); // Esto pasará al errorHandler que enviará el 404
+app.get('/', (req, res) => {
+  res.json({
+    ok: true,
+    message: 'API backend corriendo correctamente (Express + MySQL)'
+  });
 });
 
-// global error handler
+// ===============================
+// CAPTURA DE 404
+// ===============================
+app.use((req, res, next) => {
+  console.log('⚠️ [DEBUG 404] Ruta NO encontrada:', req.method, req.originalUrl);
+  next();
+});
+
+// ===============================
+// HANDLER GLOBAL DE ERRORES
+// ===============================
 app.use(errorHandler);
 
 module.exports = app;

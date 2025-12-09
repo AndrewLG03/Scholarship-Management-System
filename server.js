@@ -5,20 +5,17 @@ const { pool } = require('./src/config/database');
 
 const PORT = process.env.PORT || 3000;
 
-// 👉 LAS RUTAS SIEMPRE ANTES DE app.listen()
-app.use("/api/2fa", require("./src/routes/2fa.routes"));
-
 (async () => {
     try {
-        // probar conexión simple al pool
-        if (pool) {
-            const [rows] = await pool.query('SELECT 1 AS ok');
-            console.log('MySQL pool OK.');
-        }
+        // Prueba de conexión MySQL
+        const [rows] = await pool.query('SELECT 1 AS ok');
+        console.log('MySQL pool OK.');
 
+        // Iniciar servidor
         app.listen(PORT, () => {
             console.log(`Server listening on port ${PORT}`);
         });
+
     } catch (err) {
         console.error('Error iniciando la app:', err);
         process.exit(1);
