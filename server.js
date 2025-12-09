@@ -5,24 +5,22 @@ const { pool } = require('./src/config/database');
 
 const PORT = process.env.PORT || 3000;
 
+// 👉 LAS RUTAS SIEMPRE ANTES DE app.listen()
+app.use("/api/2fa", require("./src/routes/2fa.routes"));
+
 (async () => {
     try {
         // probar conexión simple al pool
         if (pool) {
-        // una consulta liviana para validar conexión
-        const [rows] = await pool.query('SELECT 1 AS ok');
-        if (!rows) console.warn('Warning: prueba de conexión MySQL devolvió sin rows');
-        console.log('MySQL pool OK.');
-        } else {
-        console.warn('Pool MySQL no encontrado, saltando verificación.');
+            const [rows] = await pool.query('SELECT 1 AS ok');
+            console.log('MySQL pool OK.');
         }
 
         app.listen(PORT, () => {
-        console.log(`Server listening on port ${PORT}`);
+            console.log(`Server listening on port ${PORT}`);
         });
     } catch (err) {
         console.error('Error iniciando la app:', err);
         process.exit(1);
     }
-    })
-();
+})();
