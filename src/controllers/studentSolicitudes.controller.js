@@ -232,14 +232,23 @@ exports.enviarSolicitud = async (req, res) => {
 
     conn = await pool.getConnection();
 
+    // ===============================
+    // VALIDACIÓN CRÍTICA (arregla 500)
+    // ===============================
     const [est] = await conn.query(
       "SELECT id_estudiante FROM estudiantes WHERE id_usuario = ? LIMIT 1",
       [user.id]
     );
 
+    if (est.length === 0) {
+      return res.status(400).json({ message: "Estudiante no encontrado" });
+    }
+
     const id_estudiante = est[0].id_estudiante;
 
+    // ===============================
     // Verificar solicitud
+    // ===============================
     const [sol] = await conn.query(
       `SELECT estado FROM solicitudes
        WHERE id_solicitud = ? AND id_estudiante = ?`,
@@ -254,7 +263,9 @@ exports.enviarSolicitud = async (req, res) => {
       return res.status(400).json({ message: "La solicitud ya fue enviada" });
     }
 
+    // ===============================
     // Verificar documentos obligatorios
+    // ===============================
     const [docs] = await conn.query(
       `
       SELECT d.nombre, d.obligatorio, sd.url_archivo
@@ -266,8 +277,8 @@ exports.enviarSolicitud = async (req, res) => {
     );
 
     const faltantes = docs.filter(doc => {
-        const obligatorio = doc.obligatorio?.toString().trim().toUpperCase();
-        return (obligatorio === "SI" || obligatorio === "SÍ") && !doc.url_archivo;
+      const ob = (doc.obligatorio || "").toString().trim().toUpperCase();
+      return (ob === "SI" || ob === "SÍ") && !doc.url_archivo;
     });
 
     if (faltantes.length > 0) {
@@ -277,7 +288,9 @@ exports.enviarSolicitud = async (req, res) => {
       });
     }
 
+    // ===============================
     // Enviar solicitud
+    // ===============================
     await conn.query(
       `
       UPDATE solicitudes
@@ -287,7 +300,8 @@ exports.enviarSolicitud = async (req, res) => {
       [id_solicitud]
     );
 
-    res.json({ message: "Solicitud enviada correctamente." });
+    return res.json({ message: "Solicitud enviada correctamente." });
+
   } catch (err) {
     console.error("Error enviarSolicitud:", err);
     return res.status(500).json({ message: "Error enviando solicitud" });
