@@ -265,9 +265,10 @@ exports.enviarSolicitud = async (req, res) => {
       [id_solicitud]
     );
 
-    const faltantes = docs.filter(
-      doc => doc.obligatorio === "SI" && !doc.url_archivo
-    );
+    const faltantes = docs.filter(doc => {
+        const obligatorio = doc.obligatorio?.toString().trim().toUpperCase();
+        return (obligatorio === "SI" || obligatorio === "SÍ") && !doc.url_archivo;
+    });
 
     if (faltantes.length > 0) {
       return res.status(400).json({
