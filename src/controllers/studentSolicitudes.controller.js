@@ -294,11 +294,10 @@ exports.enviarSolicitud = async (req, res) => {
     await conn.query(
       `
       UPDATE solicitudes
-      SET estado = 'ENVIADA', fecha_envio = NOW()
+      SET estado = 'ENVIADA'
       WHERE id_solicitud = ?
     `,
-      [id_solicitud]
-    );
+    [id_solicitud]);
 
     return res.json({ message: "Solicitud enviada correctamente." });
 
